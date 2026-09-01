@@ -44,26 +44,26 @@ Blog Post: Markdown or URL
           |
           v
      Human Review
- draft -> approved
-       \-> rejected
+   draft -> approved
+      \-> rejected
           |
           v
-   Schedule Gate
- approved only
+     Schedule Gate
+    approved only
           |
           v
- Durable Scheduler
-     Phase 5
+   Durable Scheduler
           |
           v
-  SocialPublisher
-   /     |      \
-Discord Mock X Mock LinkedIn
-       Phase 4
+     SocialPublisher
+      /     |      \
+ Discord  Mock X  Mock LinkedIn
           |
           v
- Publish History
-     Phase 5
+ Publish Receipt + History
+          |
+          v
+      published
 ```
 
 ## Source of Truth
