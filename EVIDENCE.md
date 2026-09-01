@@ -21,10 +21,10 @@ real publish result proves it.
 
 ## Core Requirements
 
-- [ ] Post ingestion stores the source of truth
-- [ ] Variants read from the stored source
-- [ ] Platform constraint profiles are enforced
-- [ ] Invalid variants name the broken rule
+- [x] Post ingestion stores the source of truth
+- [x] Variants read from the stored source
+- [x] Platform constraint profiles are enforced
+- [x] Invalid variants name the broken rule
 - [ ] Review supports draft / approved / rejected / published
 - [ ] Unapproved scheduling returns 4xx
 - [ ] Discord real adapter works
@@ -55,3 +55,67 @@ real publish result proves it.
 - [ ] AI usage / cost tracking
 - [ ] Multi-tenant isolation
 - [ ] Additional scary-case tests
+
+## Phase 2 — Ingestion and Generation Evidence
+
+Phase 2 implements:
+
+- persistent SQLite storage;
+- Markdown ingestion;
+- URL ingestion;
+- stored source-of-truth behavior;
+- Discord, Mock X, and Mock LinkedIn variants;
+- deterministic length enforcement;
+- deterministic hashtag enforcement;
+- deterministic tone checks;
+- named constraint failures;
+- repeated generation without duplicate variant rows;
+- persistence across application restart.
+
+### Automated test command
+
+```text
+.venv/bin/pytest tests/test_phase2.py -q
+```
+
+### Actual automated test output
+
+```text
+..............                                                           [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.13/site-packages/fastapi/testclient.py:1
+  /home/mina/flyrank-capstone-social-studio/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+14 passed, 1 warning in 0.40s
+```
+
+### Actual local API probe
+
+```text
+POST INGESTION: PASS id=1 source=markdown
+VARIANT GENERATION: PASS discord,mock_x,mock_linkedin
+INITIAL VARIANT STATUS: PASS all=draft
+BROKEN VARIANT BLOCKED: PASS status=422 rules=['max_length']
+HASHTAG RULE: PASS status=422
+VALID VARIANT: PASS status=200
+REPEATED GENERATION: PASS no duplicate rows
+PHASE 2 LOCAL ACCEPTANCE: PASS
+```
+
+### Phase 2 Gate
+
+- [x] A post enters as Markdown or URL and is stored.
+- [x] Generation reads the stored post.
+- [x] The stored post is the source of truth.
+- [x] Platform-specific variants are generated.
+- [x] Constraint profiles enforce length.
+- [x] Constraint profiles enforce hashtag limits.
+- [x] Constraint profiles include deterministic tone rules.
+- [x] A bad variant is blocked before review.
+- [x] The error identifies the broken rule.
+- [x] Repeating generation creates no duplicate rows.
+- [x] SQLite data survives application restart.
+
+Human review remains Phase 3.

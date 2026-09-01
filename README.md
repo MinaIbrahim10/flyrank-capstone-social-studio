@@ -1,99 +1,210 @@
 # Social Media Studio
 
-Backend capstone for the FlyRank AI Internship.
+FlyRank Backend Track capstone.
 
-Social Media Studio turns one stored blog post into platform-specific social
-media variants, validates platform rules, requires human approval, schedules
-approved variants, and publishes each scheduled item exactly once through a
-clean adapter architecture.
+Social Media Studio changes one stored blog post into platform-specific social
+media variants, validates each platform's rules, requires human approval before
+publishing, schedules approved variants, and publishes through one common
+adapter interface.
 
-## Core Goal
+## Current Status
 
-One blog post becomes multiple reviewed social posts without:
+- Phase 1 — Design: complete
+- Phase 2 — Ingestion, storage, generation and constraints: complete
+- Phase 3 — Human review workflow: next
+- Phase 4 — Publishing adapters and idempotency: pending
+- Phase 5 — Durable scheduler and publish history: pending
 
-- violating platform constraints;
-- publishing unapproved content;
-- creating duplicate posts during retries;
-- losing scheduled work after a restart.
-
-## Planned Stack
+## Stack
 
 - Python 3.13+
 - FastAPI
 - SQLite
 - SQLAlchemy
 - APScheduler
-- Discord webhook for one real publishing target
+- httpx
+- pytest
+- Discord as the real publishing target
 - Mock X adapter
 - Mock LinkedIn adapter
-- pytest
 - optional local Ollama
 
 ## Architecture
 
-    Blog Post
-       |
-       v
-    Persistent Storage
-       |
-       v
-    Variant Generator
-       |
-       v
-    Constraint Validation
-       |
-       v
+```text
+Blog Post: Markdown or URL
+          |
+          v
+   Ingest + Store
+          |
+          v
+   Variant Generator
+          |
+          v
+ Constraint Validation
+          |
+          v
     Human Review
-       |
-       v
-    Durable Scheduler
-       |
-       v
-    SocialPublisher
-       |-- Discord
-       |-- Mock X
-       |-- Mock LinkedIn
-       |
-       v
-    Publish History
+      Phase 3
+          |
+          v
+  Durable Scheduler
+      Phase 5
+          |
+          v
+   SocialPublisher
+    /     |      \
+Discord Mock X Mock LinkedIn
+      Phase 4
+          |
+          v
+   Publish History
+```
 
-## Development Status
+## Source of Truth
 
-Phase 1 — Design.
+A post enters as either:
 
-See:
+- pasted Markdown; or
+- a public URL.
 
-- `DESIGN.md`
-- `EVIDENCE.md`
-- `BUILDLOG.md`
+URL content is fetched and stored during ingestion.
 
-## Submission Files
+After that point, generation reads the stored database record only. The stored
+post is the single source of truth.
 
-The repository will contain:
+## Constraint Profiles
 
-- `README.md`
-- `EVIDENCE.md`
-- `BUILDLOG.md`
-- `.env.example`
+### Discord
+
+- maximum 2000 characters
+- maximum 5 hashtags
+- conversational tone rules
+
+### Mock X
+
+- maximum 280 characters
+- maximum 2 hashtags
+- concise tone rules
+
+### Mock LinkedIn
+
+- maximum 3000 characters
+- maximum 3 hashtags
+- professional tone rules
+
+Validation errors identify the exact failed rule:
+
+- `max_length`
+- `hashtag_count`
+- `tone`
+
+## API
+
+### Health
+
+`GET /health`
+
+### Posts
+
+`POST /posts`
+
+`GET /posts`
+
+`GET /posts/{post_id}`
+
+Markdown example:
+
+```json
+{
+  "title": "Reliable Publishing",
+  "markdown": "# Reliable Publishing\n\nRetries must be safe."
+}
+```
+
+URL example:
+
+```json
+{
+  "title": "Example Article",
+  "url": "https://example.com/article"
+}
+```
+
+Exactly one of `markdown` or `url` must be supplied.
+
+### Variants
+
+`POST /posts/{post_id}/variants`
+
+`GET /posts/{post_id}/variants`
+
+`GET /variants/{variant_id}`
+
+Generation creates:
+
+- `discord`
+- `mock_x`
+- `mock_linkedin`
+
+Every generated variant starts with status `draft`.
+
+### Validate a Variant
+
+`POST /variants/validate`
+
+Example:
+
+```json
+{
+  "platform": "mock_x",
+  "content": "Reliable systems retry safely. #backend"
+}
+```
+
+A broken platform rule returns HTTP `422` and names the failed rule.
+
+## Setup
+
+```bash
+./scripts/setup.sh
+```
 
 ## Run
 
-The runnable application begins in Phase 2.
+```bash
+./scripts/run.sh
+```
 
-Exact one-command startup and seed instructions will be added before the
-project is considered submission-ready.
+Open:
 
-## Testing
+```text
+http://127.0.0.1:8000/docs
+```
 
-Every core requirement will receive deterministic automated tests.
+## Tests
 
-Real Discord publishing will also receive recorded end-to-end evidence.
+```bash
+.venv/bin/pytest -q
+```
+
+## Evidence
+
+See `EVIDENCE.md`.
+
+## AI Usage
+
+See `BUILDLOG.md`.
 
 ## Known Limitations
 
-The project is currently at the design phase.
+The human approve/edit/reject workflow is not implemented yet.
 
-No production API or scheduler has been implemented yet.
+Publishing adapters are not implemented yet.
 
-Real publishing will intentionally support only Discord. X and LinkedIn use
-local mock adapters.
+Durable scheduling and publish history are not implemented yet.
+
+Real Discord publishing will be implemented only after the deterministic core
+and review workflow pass.
+
+Real Instagram, X, and LinkedIn publishing is intentionally outside scope.
