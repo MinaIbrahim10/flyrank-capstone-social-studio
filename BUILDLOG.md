@@ -121,3 +121,30 @@ of a real Discord delivery.
 
 A separate real-platform gate is still required before Phase 4 itself is
 declared complete.
+
+## Phase 4B — Real Discord Verification
+
+The project was tested against a real Discord webhook owned by the project
+owner.
+
+Security handling:
+
+- the webhook was entered directly into the terminal;
+- terminal input was hidden;
+- the webhook was stored only in the ignored `.env`;
+- the webhook secret was never printed;
+- `.env` remained untracked.
+
+Verification performed:
+
+- Discord accepted the webhook;
+- one approved variant was delivered to Discord;
+- Discord returned a real message ID;
+- the real message was fetched from Discord after delivery;
+- repeating the publish operation returned the original persistent receipt;
+- the second call did not create another successful local publishing action.
+
+This closes the real-platform portion of Phase 4.
+
+The next reliability phase must still prove durable automatic scheduling and
+worker restart behavior. Those are not claimed complete here.

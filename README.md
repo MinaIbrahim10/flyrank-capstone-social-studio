@@ -374,3 +374,24 @@ Real Discord delivery is intentionally not claimed yet.
 The Phase 4 core gate becomes complete only after a message is actually sent to
 the project owner's Discord target and the returned live message is recorded as
 evidence.
+
+## Real Discord Verification
+
+The Discord publisher has been verified against a real Discord channel owned by
+the project owner.
+
+The real-platform gate verifies:
+
+- webhook authentication;
+- approved variant publishing;
+- a real Discord message ID;
+- a live Discord message URL;
+- remote retrieval of the published message;
+- retry protection through the persistent publish receipt.
+
+The Discord webhook itself remains only in `.env` and is never committed.
+
+Phase 4 is complete.
+
+The next core phase is durable automatic scheduling, worker restart recovery,
+and end-to-end publish history.

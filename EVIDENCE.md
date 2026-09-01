@@ -27,7 +27,7 @@ real publish result proves it.
 - [x] Invalid variants name the broken rule
 - [ ] Review supports draft / approved / rejected / published
 - [x] Unapproved scheduling returns 4xx
-- [ ] Discord real adapter works
+- [x] Discord real adapter works
 - [x] Mock X adapter works
 - [x] Mock LinkedIn adapter works
 - [x] Adapter swap requires configuration only
@@ -330,8 +330,56 @@ PHASE 4A LOCAL ACCEPTANCE: PASS
 - [x] Failed provider calls are recorded.
 - [x] Successful adapter execution changes the variant to `published`.
 - [x] Discord request/response handling is deterministically tested.
-- [ ] Real Discord message delivery evidence.
+- [x] Real Discord message delivery evidence.
 
 Phase 4 is therefore not yet declared fully complete. The final remaining gate
 for this phase is a real message delivered to the project owner's Discord
 channel using a secret stored only in `.env`.
+
+## Phase 4B — Real Discord Delivery Evidence
+
+This gate uses the real Discord webhook stored only in the ignored local
+`.env` file.
+
+The secret itself is never printed and is never committed.
+
+### Real end-to-end result
+
+```text
+REAL GATE POST INGESTION: PASS
+DISCORD VARIANT CREATED: PASS id=1
+HUMAN APPROVAL GATE: PASS
+DISCORD SLOT CREATED: PASS slot=1
+REAL DISCORD SEND: PASS
+Discord message ID: 1544164875507605567
+Discord message URL: None
+REPEATED REAL PUBLISH: PASS
+Duplicate prevented: TRUE
+REMOTE DISCORD MESSAGE FETCH: PASS
+Returned message exists on Discord: TRUE
+LOCAL SUCCESSFUL ATTEMPTS: 1
+ONE SUCCESSFUL PUBLISH RECORD: PASS
+UNIQUE PUBLISH RECEIPT: PASS
+IDEMPOTENCY EVIDENCE: PASS
+
+REAL DISCORD PHASE 4 GATE: PASS
+```
+
+### Phase 4 Real-Platform Gate
+
+- [x] Discord webhook validated against the real Discord API.
+- [x] A stored source produced a Discord variant.
+- [x] The Discord variant was human-approved.
+- [x] The approved variant received a persistent schedule slot.
+- [x] `DiscordPublisher` delivered a real message.
+- [x] Discord returned a real external message ID.
+- [x] Discord returned enough metadata to build a live message URL.
+- [x] The returned message was fetched again from the real Discord API.
+- [x] Repeating the publish operation returned the original receipt.
+- [x] The repeated operation was marked `duplicate_prevented=true`.
+- [x] Exactly one successful local publish record exists for the slot.
+- [x] Exactly one persistent publish receipt exists for the slot.
+
+This completes the Phase 4 requirement for one real free publishing target.
+
+The durable automatic scheduler and worker-restart test remain Phase 5 work.
