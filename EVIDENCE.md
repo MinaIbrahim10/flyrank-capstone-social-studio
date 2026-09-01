@@ -427,3 +427,82 @@ Verification:
 - [x] Channel ID obtained from Discord webhook metadata.
 - [x] Live Discord browser URL constructed from verified identifiers.
 - [x] No additional Discord message was sent during this verification.
+
+## Phase 5A — Durable Scheduler and Worker Restart Evidence
+
+Implemented:
+
+- persistent APScheduler SQLAlchemy job store;
+- persistent worker process;
+- due-slot scanning from SQLite;
+- future-slot protection;
+- overdue-slot processing after worker restart;
+- automatic scheduled mock publishing;
+- durable job-store restart verification;
+- hard process termination in the middle of a multi-item due batch;
+- restart completion of remaining work;
+- exact receipt-count verification;
+- exact external mock-post-count verification;
+- exact successful-attempt-count verification.
+
+### Phase 5A automated tests
+
+```text
+.....                                                                    [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.13/site-packages/fastapi/testclient.py:1
+  /home/mina/flyrank-capstone-social-studio/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+5 passed, 1 warning in 5.01s
+```
+
+### Full regression after worker implementation
+
+```text
+.................................................                        [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.13/site-packages/fastapi/testclient.py:1
+  /home/mina/flyrank-capstone-social-studio/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+49 passed, 1 warning in 5.75s
+```
+
+### Deterministic hard-crash/restart probe
+
+```text
+DURABLE SLOTS CREATED: PASS slots=1,2
+MID-BATCH HARD CRASH: PASS exit=86
+STATE AFTER CRASH: PASS receipts=1 mock_posts=1 successes=1
+WORKER RESTART: PASS
+REMAINING SLOT RECOVERED: PASS
+ZERO DUPLICATE MOCK POSTS: PASS count=2 for 2 slots
+UNIQUE RECEIPTS: PASS count=2 for 2 slots
+SUCCESS HISTORY: PASS count=2
+PHASE 5A CRASH/RESTART ACCEPTANCE: PASS
+```
+
+### Phase 5A Gate
+
+- [x] APScheduler uses a persistent SQLAlchemy job store.
+- [x] Durable schedule slots survive worker downtime.
+- [x] Future slots are not published early.
+- [x] Due slots publish automatically.
+- [x] Overdue slots publish after worker restart.
+- [x] Worker can be terminated during a multi-item due batch.
+- [x] A completed slot is not duplicated after restart.
+- [x] Remaining durable work completes after restart.
+- [x] Two durable slots produce exactly two mock external posts.
+- [x] Two durable slots produce exactly two persistent receipts.
+- [x] Two durable slots produce exactly two successful publish attempts.
+- [x] Publish history remains queryable.
+
+Not yet claimed:
+
+- the final real Discord two-minute automatic scheduler probe;
+- the complete six-probe final acceptance suite.
+
+Those remain Phase 5B.

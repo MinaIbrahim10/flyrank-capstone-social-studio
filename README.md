@@ -410,3 +410,76 @@ needed to build the normal browser message URL.
 
 The webhook credential remains local in `.env` and is never included in the
 stored browser URL.
+
+## Durable Scheduler and Worker
+
+Phase 5 introduces a persistent APScheduler worker.
+
+Run the worker with:
+
+```text
+./scripts/worker.sh
+```
+
+The worker uses the same persistent database as the API.
+
+### Durable scheduling
+
+The scheduler uses APScheduler's SQLAlchemy job store.
+
+The recurring durable job scans the persisted `schedule_slots` table and
+publishes only slots where:
+
+```text
+status = scheduled
+scheduled_at <= current time
+```
+
+Future slots are not published early.
+
+If the worker is offline when a slot becomes due, the slot remains in SQLite.
+When the worker starts again, the durable batch discovers the overdue slot and
+publishes it.
+
+### Worker restart behavior
+
+The worker processes due schedule slots in deterministic database order.
+
+Each successful publish commits:
+
+- the external/mock post;
+- the publish attempt;
+- the unique publish receipt;
+- the slot status;
+- the variant status.
+
+A hard-crash acceptance test intentionally terminates the worker after one
+successful item in a two-item due batch.
+
+After restart:
+
+- the already-completed item remains published;
+- its receipt prevents it from being published again;
+- the second persistent slot remains scheduled;
+- the restarted worker publishes only that remaining slot;
+- two scheduled slots produce exactly two mock external posts;
+- two scheduled slots produce exactly two unique receipts.
+
+This demonstrates durable mid-batch restart behavior without fabricating a
+successful result.
+
+### APScheduler persistence
+
+The APScheduler job store itself is persisted in SQLAlchemy. A scheduler object
+is shut down and reconstructed against the same database during testing, and
+the durable batch job remains present.
+
+### Important real-platform note
+
+The real Discord publisher was verified in Phase 4.
+
+The deterministic crash/restart test uses Mock X so the test can safely perform
+hard process termination without creating uncontrolled real social messages.
+
+The final Phase 5 gate will separately verify automatic scheduled delivery to
+the real Discord target.

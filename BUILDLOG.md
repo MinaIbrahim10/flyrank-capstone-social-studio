@@ -165,3 +165,37 @@ and a normal Discord browser message URL was constructed.
 The existing local publish receipt was also updated with that URL.
 
 No Discord credential was committed or printed.
+
+## Phase 5A — Durable Scheduler and Crash/Restart Worker
+
+AI assistance was used to implement the durable worker architecture and its
+failure-injection tests.
+
+Implementation decisions:
+
+- APScheduler uses `SQLAlchemyJobStore`;
+- the APScheduler batch job is persistent;
+- `schedule_slots` remains the authoritative durable queue;
+- the worker polls for due persisted slots;
+- future slots are not executed early;
+- overdue slots are executed after a worker restart;
+- each due slot goes through the existing idempotent `publish_slot` service;
+- the worker handles a due batch in deterministic schedule/id order;
+- successful publishes are committed before the worker moves to the next slot;
+- the restart test uses an explicit test-only hard-crash environment hook;
+- that hook terminates the process after one successful committed publish in a
+  multi-slot batch;
+- after restart, the already-completed slot is not published again;
+- the remaining persistent slot is completed;
+- receipt count, successful-attempt count, and mock external-post count are
+  checked for exact equality.
+
+The hard-crash hook is disabled by default and activates only when
+`SOCIAL_STUDIO_TEST_CRASH_AFTER_SUCCESSES` is explicitly supplied.
+
+The crash/restart gate intentionally uses Mock X rather than Discord. This
+allows destructive process testing without sending uncontrolled duplicate
+messages to a real external platform.
+
+A separate real Discord automatic-scheduler gate remains before Phase 5 and the
+six final acceptance probes can be declared complete.
