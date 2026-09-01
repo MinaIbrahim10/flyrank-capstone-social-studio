@@ -560,3 +560,115 @@ and schedules the real message approximately two minutes into the future.
 The mandatory capstone core is complete.
 
 Stretch goals remain separate follow-up work.
+
+## Completed Stretch Goals
+
+All optional stretch goals were implemented after the verified core.
+
+### A/B variants and winner flow
+
+Create an experiment:
+
+```text
+POST /posts/{post_id}/ab-experiments/mock_x
+```
+
+Each experiment produces two distinct constraint-valid options, `A` and `B`.
+
+Choose a winner:
+
+```text
+POST /ab-experiments/{experiment_id}/winner
+```
+
+Promote the selected content into the normal variant review workflow:
+
+```text
+POST /ab-experiments/{experiment_id}/promote
+```
+
+### Grounding checks
+
+```text
+POST /posts/{post_id}/grounding-check
+```
+
+Grounding checks source-token coverage and rejects numeric claims that do not
+appear in the stored source.
+
+### Local Ollama
+
+```text
+POST /posts/{post_id}/ollama/discord
+```
+
+The integration uses `OLLAMA_BASE_URL` and `OLLAMA_MODEL`.
+
+The real local gate used:
+
+```text
+gemma4:e4b-it
+```
+
+AI output is still passed through deterministic platform constraints and a
+grounding guard. Unsafe output is replaced by a deterministic source-grounded
+fallback.
+
+### AI usage and cost tracking
+
+```text
+GET /ai-usage
+```
+
+Usage records include:
+
+- provider;
+- model;
+- prompt tokens;
+- completion tokens;
+- input/output character counts;
+- success/failure state;
+- cost.
+
+Local Ollama has no per-token API fee, so its direct API cost is recorded as
+`0.0 USD`.
+
+### Multi-tenant agency/client isolation
+
+Create clients:
+
+```text
+POST /tenants
+```
+
+Create tenant-owned campaigns:
+
+```text
+POST /tenants/{tenant_id}/campaigns
+```
+
+Generate isolated variants:
+
+```text
+POST /tenants/{tenant_id}/campaigns/{campaign_id}/variants
+```
+
+Every campaign query checks both tenant ID and campaign ID. A different tenant
+cannot read another tenant's campaign through these endpoints.
+
+### Scary-case suite
+
+Additional tests cover:
+
+- duplicate A/B experiment requests;
+- promotion before selecting a winner;
+- invalid winner labels;
+- fabricated numeric claims;
+- unsafe Ollama output;
+- AI cost records;
+- duplicate tenant slugs;
+- unknown tenants;
+- cross-tenant reads;
+- tenant-specific variant generation.
+
+The mandatory core and all stretch goals are now complete.

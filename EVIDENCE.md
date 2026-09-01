@@ -49,12 +49,12 @@ real publish result proves it.
 
 ## Stretch Goals
 
-- [ ] A/B variants
-- [ ] Grounding check
-- [ ] Local Ollama generation
-- [ ] AI usage / cost tracking
-- [ ] Multi-tenant isolation
-- [ ] Additional scary-case tests
+- [x] A/B variants
+- [x] Grounding check
+- [x] Local Ollama generation
+- [x] AI usage / cost tracking
+- [x] Multi-tenant isolation
+- [x] Additional scary-case tests
 
 ## Phase 2 — Ingestion and Generation Evidence
 
@@ -611,3 +611,90 @@ ALL SIX FINAL ACCEPTANCE PROBES: PASS
 Mandatory/core implementation is complete.
 
 Stretch goals remain separate.
+
+## All Stretch Goals — Final Evidence
+
+All optional stretch goals were implemented after the mandatory/core capstone
+had already passed its six acceptance probes.
+
+### Stretch and scary-case tests
+
+```text
+..............                                                           [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.13/site-packages/fastapi/testclient.py:1
+  /home/mina/flyrank-capstone-social-studio/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+14 passed, 1 warning in 0.77s
+```
+
+### Full core + stretch regression
+
+```text
+................................................................         [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.13/site-packages/fastapi/testclient.py:1
+  /home/mina/flyrank-capstone-social-studio/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+64 passed, 1 warning in 8.10s
+```
+
+### Real local Ollama integration
+
+```text
+REAL LOCAL OLLAMA CALL: PASS
+Model: gemma4:e4b-it
+Provider: ollama
+AI output chars: 161
+Prompt tokens: 118
+Completion tokens: 459
+Cost USD: 0.0
+Grounded: True
+Guarded fallback used: False
+AI USAGE TRACKING: PASS
+LOCAL OLLAMA STRETCH GATE: PASS
+```
+
+### Combined stretch acceptance
+
+```text
+A/B VARIANTS: PASS
+A/B WINNER FLOW: PASS
+A/B WINNER PROMOTION: PASS
+GROUNDING VALID CLAIM: PASS
+GROUNDING FABRICATED CLAIM BLOCKED: PASS
+MULTI-TENANT CAMPAIGN: PASS
+MULTI-TENANT VARIANTS: PASS
+CROSS-TENANT ACCESS BLOCKED: PASS
+ALL NON-OLLAMA STRETCH ACCEPTANCE: PASS
+```
+
+### Stretch Gate
+
+- [x] A/B generation creates two distinct, constraint-valid options.
+- [x] Human winner selection stores A or B.
+- [x] Winning A/B content can be promoted into the normal review workflow.
+- [x] Grounding accepts source-supported claims.
+- [x] Grounding detects fabricated numeric claims.
+- [x] Local Ollama is called through the application integration.
+- [x] AI generation remains protected by deterministic constraint checks.
+- [x] Ungrounded/invalid model output falls back to a safe grounded variant.
+- [x] Ollama token usage is stored when returned.
+- [x] Local Ollama cost is explicitly recorded as `$0.00`.
+- [x] Successful and failed AI usage have persistent records.
+- [x] Multiple agency/client tenants can be created.
+- [x] Tenant campaigns are queried only under their owning tenant.
+- [x] Cross-tenant campaign access returns 404.
+- [x] Each tenant campaign can create its own three platform variants.
+- [x] Duplicate tenant slugs are rejected.
+- [x] A/B experiment creation is idempotent.
+- [x] Promotion without a winner is blocked.
+- [x] Invalid A/B winner labels are blocked.
+- [x] Unknown tenant campaign creation is blocked.
+- [x] Full mandatory/core regression remains green.
+
+All listed stretch goals are complete.

@@ -176,3 +176,132 @@ class MockPublishedPostRead(BaseModel):
     content: str
     idempotency_key: str
     created_at: datetime
+
+
+# ============================================================
+# Stretch Goal Schemas
+# ============================================================
+
+
+class ABWinnerSelect(BaseModel):
+    label: Literal[
+        "A",
+        "B",
+    ]
+
+
+class GroundingCheckRequest(BaseModel):
+    content: str = Field(
+        min_length=1,
+    )
+
+
+class GroundingCheckRead(BaseModel):
+    grounded: bool
+    coverage: float
+    unsupported_numbers: list[str]
+    supported_tokens: int
+    candidate_tokens: int
+
+
+class OllamaGenerateRequest(BaseModel):
+    model: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=200,
+    )
+
+
+class AIGeneratedVariantRead(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
+
+    id: int
+    post_id: int
+    platform: str
+    provider: str
+    model: str
+    content: str
+    grounded: bool
+    used_fallback: bool
+    created_at: datetime
+
+
+class AIUsageRead(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
+
+    id: int
+    post_id: int | None
+    provider: str
+    model: str
+    prompt_tokens: int
+    completion_tokens: int
+    input_chars: int
+    output_chars: int
+    cost_usd: float
+    success: bool
+    error: str | None
+    created_at: datetime
+
+
+class TenantCreate(BaseModel):
+    name: str = Field(
+        min_length=1,
+        max_length=200,
+    )
+
+    slug: str = Field(
+        min_length=2,
+        max_length=100,
+        pattern=r"^[a-z0-9][a-z0-9-]*$",
+    )
+
+
+class TenantRead(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
+
+    id: int
+    name: str
+    slug: str
+    created_at: datetime
+
+
+class TenantCampaignCreate(BaseModel):
+    title: str = Field(
+        min_length=1,
+        max_length=300,
+    )
+
+    markdown: str = Field(
+        min_length=1,
+    )
+
+
+class TenantCampaignRead(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
+
+    id: int
+    tenant_id: int
+    title: str
+    markdown: str
+    created_at: datetime
+
+
+class TenantVariantRead(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
+
+    id: int
+    campaign_id: int
+    platform: str
+    content: str
+    status: str
+    created_at: datetime

@@ -242,3 +242,32 @@ All six mandatory acceptance probes passed before the core project was marked
 complete.
 
 Stretch goals remain separate follow-up work.
+
+## All Stretch Goals — One-Pass Implementation
+
+All optional stretch goals were implemented together after the mandatory core
+was already complete.
+
+Added:
+
+- persistent A/B experiments with options A and B;
+- winner selection and promotion into the existing review workflow;
+- deterministic grounding checks with explicit unsupported-number detection;
+- local Ollama integration;
+- deterministic safety fallback around model output;
+- persistent AI usage and zero-dollar local Ollama cost records;
+- tenant/client records;
+- tenant-owned campaigns;
+- tenant-specific platform variants;
+- tenant/campaign ownership checks that prevent cross-tenant reads;
+- an additional scary-case regression suite.
+
+The real Ollama gate calls an installed local model through the same application
+service used by the API and verifies a persistent usage record.
+
+No additional Discord message is needed for stretch verification because the
+real Discord publishing requirement had already passed during the mandatory
+core acceptance gate.
+
+The full core suite is rerun after all stretch additions so optional work cannot
+silently break the previously verified mandatory behavior.
