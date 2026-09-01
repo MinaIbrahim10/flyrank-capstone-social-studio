@@ -18,7 +18,10 @@ from sqlalchemy import select
 
 from app import models as models  # noqa: F401
 from app.db import Database
-from app.models import ScheduleSlot
+from app.models import (
+    PublishReceipt,
+    ScheduleSlot,
+)
 from app.services.publishing import (
     PublishInProgress,
     PublishNotAllowed,
@@ -308,6 +311,77 @@ def run_due_batch(
     return result
 
 
+def recover_incomplete_claims(
+    database_url: str,
+) -> int:
+    """Recover claims left by a worker process that no longer exists.
+
+    This runs only at worker startup. A `publishing` slot with no
+    receipt is returned to `scheduled`, allowing the restarted worker
+    to retry it. If a receipt already exists, the slot is repaired to
+    `published`.
+    """
+    database = Database(
+        database_url
+    )
+
+    database.create_all()
+
+    recovered = 0
+
+    try:
+        with database.SessionLocal() as session:
+            slots = session.scalars(
+                select(
+                    ScheduleSlot
+                )
+                .where(
+                    ScheduleSlot.status
+                    == "publishing"
+                )
+                .order_by(
+                    ScheduleSlot.id
+                )
+            ).all()
+
+            for slot in slots:
+                receipt = session.scalar(
+                    select(
+                        PublishReceipt
+                    )
+                    .where(
+                        PublishReceipt.slot_id
+                        == slot.id
+                    )
+                )
+
+                if receipt is not None:
+                    slot.status = "published"
+
+                else:
+                    slot.status = "scheduled"
+
+                session.add(
+                    slot
+                )
+
+                recovered += 1
+
+            session.commit()
+
+    finally:
+        database.dispose()
+
+    if recovered:
+        print(
+            "WORKER_RECOVERY",
+            f"claims={recovered}",
+            flush=True,
+        )
+
+    return recovered
+
+
 def build_scheduler(
     database_url: str,
 ) -> BackgroundScheduler:
@@ -371,6 +445,10 @@ def start_background_worker(
 
     database.create_all()
     database.dispose()
+
+    recover_incomplete_claims(
+        database_url
+    )
 
     scheduler = build_scheduler(
         database_url

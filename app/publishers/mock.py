@@ -59,6 +59,13 @@ class DatabaseMockPublisher(
         self.session.add(record)
         self.session.flush()
 
+        # Treat the mock-platform row as the external side
+        # effect. Commit it before returning so a process
+        # crash after adapter success can be reconciled on
+        # retry through the stable idempotency key.
+        self.session.commit()
+        self.session.refresh(record)
+
         return PublishResult(
             publisher=self.name,
             external_message_id=(

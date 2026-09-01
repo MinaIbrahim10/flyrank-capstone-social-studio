@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import timezone
 import hashlib
+import os
+from pathlib import Path
 
 from sqlalchemy import (
     select,
@@ -108,6 +110,62 @@ def outcome_from_receipt(
         duplicate_prevented=(
             duplicate_prevented
         ),
+    )
+
+
+def test_crash_after_adapter_enabled(
+    publisher_name: str,
+) -> bool:
+    requested = (
+        os.getenv(
+            "SOCIAL_STUDIO_TEST_CRASH_AFTER_ADAPTER",
+            "",
+        )
+        .strip()
+        .lower()
+    )
+
+    return (
+        requested
+        in {
+            "1",
+            "true",
+            "yes",
+        }
+        and publisher_name.startswith(
+            "mock_"
+        )
+    )
+
+
+def write_after_adapter_crash_marker(
+    *,
+    slot_id: int,
+    idempotency_key: str,
+) -> None:
+    raw = os.getenv(
+        "SOCIAL_STUDIO_TEST_CRASH_MARKER",
+        "",
+    ).strip()
+
+    if not raw:
+        return
+
+    path = Path(
+        raw
+    )
+
+    path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    path.write_text(
+        (
+            "intentional-after-adapter-crash\n"
+            f"slot_id={slot_id}\n"
+            f"idempotency_key={idempotency_key}\n"
+        )
     )
 
 
@@ -240,6 +298,11 @@ def publish_slot(
         slot.id,
     )
 
+    variant = session.get(
+        Variant,
+        variant.id,
+    )
+
     idempotency_key = (
         make_idempotency_key(
             slot=slot,
@@ -253,16 +316,39 @@ def publish_slot(
         )
     )
 
-    publisher = create_publisher(
-        name=publisher_name,
-        session=session,
-        discord_webhook_url=(
-            discord_webhook_url
+    attempt = PublishAttempt(
+        slot_id=slot.id,
+        publisher=publisher_name,
+        idempotency_key=(
+            idempotency_key
         ),
-        http_client=http_client,
+        result="started",
+        external_message_id=None,
+        external_url=None,
+        error=None,
     )
 
+    session.add(
+        attempt
+    )
+
+    session.commit()
+    session.refresh(
+        attempt
+    )
+
+    attempt_id = attempt.id
+
     try:
+        publisher = create_publisher(
+            name=publisher_name,
+            session=session,
+            discord_webhook_url=(
+                discord_webhook_url
+            ),
+            http_client=http_client,
+        )
+
         result = publisher.publish(
             variant_id=variant.id,
             content=variant.content,
@@ -271,23 +357,45 @@ def publish_slot(
             ),
         )
 
-        attempt = PublishAttempt(
-            slot_id=slot.id,
-            publisher=publisher_name,
-            idempotency_key=(
-                idempotency_key
-            ),
-            result="success",
-            external_message_id=(
-                result.external_message_id
-            ),
-            external_url=(
-                result.external_url
-            ),
-            error=None,
+        # Test-only hard crash.
+        #
+        # For mock publishers the adapter's external-side-effect
+        # row has already committed. We terminate before the local
+        # receipt/status transaction, creating the exact recovery
+        # window needed by the final crash/retry acceptance probe.
+        if test_crash_after_adapter_enabled(
+            publisher_name
+        ):
+            write_after_adapter_crash_marker(
+                slot_id=slot.id,
+                idempotency_key=(
+                    idempotency_key
+                ),
+            )
+
+            os._exit(87)
+
+        attempt = session.get(
+            PublishAttempt,
+            attempt_id,
         )
 
-        session.add(attempt)
+        if attempt is None:
+            raise RuntimeError(
+                "Publish attempt disappeared."
+            )
+
+        attempt.result = "success"
+
+        attempt.external_message_id = (
+            result.external_message_id
+        )
+
+        attempt.external_url = (
+            result.external_url
+        )
+
+        attempt.error = None
 
         receipt = PublishReceipt(
             slot_id=slot.id,
@@ -303,17 +411,50 @@ def publish_slot(
             ),
         )
 
-        session.add(receipt)
+        session.add(
+            receipt
+        )
+
+        slot = session.get(
+            ScheduleSlot,
+            slot.id,
+        )
+
+        variant = session.get(
+            Variant,
+            variant.id,
+        )
+
+        if slot is None:
+            raise RuntimeError(
+                "Schedule slot disappeared."
+            )
+
+        if variant is None:
+            raise RuntimeError(
+                "Variant disappeared."
+            )
 
         slot.status = "published"
         variant.status = "published"
 
-        session.add(slot)
-        session.add(variant)
+        session.add(
+            slot
+        )
+
+        session.add(
+            variant
+        )
+
+        session.add(
+            attempt
+        )
 
         session.commit()
 
-        session.refresh(receipt)
+        session.refresh(
+            receipt
+        )
 
         return outcome_from_receipt(
             receipt,
@@ -329,26 +470,35 @@ def publish_slot(
             slot_id,
         )
 
-        if slot is not None:
+        if (
+            slot is not None
+            and slot.status
+            == "publishing"
+        ):
             slot.status = "scheduled"
-            session.add(slot)
+            session.add(
+                slot
+            )
 
-        failure = PublishAttempt(
-            slot_id=slot_id,
-            publisher=publisher_name,
-            idempotency_key=(
-                idempotency_key
-            ),
-            result="failed",
-            external_message_id=None,
-            external_url=None,
-            error=(
-                f"{type(exc).__name__}: "
-                f"{exc}"
-            ),
+        attempt = session.get(
+            PublishAttempt,
+            attempt_id,
         )
 
-        session.add(failure)
+        if attempt is not None:
+            attempt.result = "failed"
+            attempt.error = (
+                f"{type(exc).__name__}: "
+                f"{exc}"
+            )
+
+            attempt.external_message_id = None
+            attempt.external_url = None
+
+            session.add(
+                attempt
+            )
+
         session.commit()
 
         raise

@@ -199,3 +199,46 @@ messages to a real external platform.
 
 A separate real Discord automatic-scheduler gate remains before Phase 5 and the
 six final acceptance probes can be declared complete.
+
+## Phase 5B — Final Core Acceptance
+
+The final reliability pass tests a crash after the simulated external Mock X
+side effect but before the local final publish receipt.
+
+The recovery sequence is:
+
+1. the worker claims the durable slot;
+2. a `started` attempt is committed;
+3. the Mock X external-side-effect row is committed;
+4. the process is hard-killed before the final receipt;
+5. the slot remains `publishing`;
+6. worker startup detects the interrupted claim;
+7. the slot returns to the durable scheduled queue;
+8. the same stable idempotency key is used on retry;
+9. Mock X resolves the existing external row;
+10. no duplicate external Mock X post is created;
+11. one successful result and one final receipt are recorded.
+
+The clean-copy stranger gate also discovered and corrected two packaging/runtime
+issues:
+
+- Bash default-value expansion in `scripts/demo.sh`;
+- project-root import discovery for scripts executed from `scripts/`.
+
+A fresh copy containing no `.venv`, `.env`, or runtime database then passed
+`./scripts/demo.sh`, automatically installed dependencies, seeded a safe Mock X
+campaign, started the durable worker, started FastAPI, passed `/health`, and
+produced the seeded mock publication.
+
+The final real-platform probe schedules an approved Discord variant
+approximately two minutes into the future. The first real delivery is performed
+automatically by the persistent worker rather than by the manual publish
+endpoint.
+
+The resulting Discord message is verified remotely. A subsequent retry returns
+the existing persistent receipt and does not invoke another real publish.
+
+All six mandatory acceptance probes passed before the core project was marked
+complete.
+
+Stretch goals remain separate follow-up work.

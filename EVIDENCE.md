@@ -25,27 +25,27 @@ real publish result proves it.
 - [x] Variants read from the stored source
 - [x] Platform constraint profiles are enforced
 - [x] Invalid variants name the broken rule
-- [ ] Review supports draft / approved / rejected / published
+- [x] Review supports draft / approved / rejected / published
 - [x] Unapproved scheduling returns 4xx
 - [x] Discord real adapter works
 - [x] Mock X adapter works
 - [x] Mock LinkedIn adapter works
 - [x] Adapter swap requires configuration only
 - [x] Publishing is idempotent
-- [ ] Scheduler survives restart
-- [ ] Worker restart produces zero duplicate posts
-- [ ] Publish history records attempts and results
-- [ ] Secrets stay outside Git
-- [ ] README clean-machine startup works
+- [x] Scheduler survives restart
+- [x] Worker restart produces zero duplicate posts
+- [x] Publish history records attempts and results
+- [x] Secrets stay outside Git
+- [x] README clean-machine startup works
 
 ## Acceptance Probes
 
-- [ ] Probe 1 — ingest post and generate valid variants
-- [ ] Probe 2 — invalid variant blocked with named rule
+- [x] Probe 1 — ingest post and generate valid variants
+- [x] Probe 2 — invalid variant blocked with named rule
 - [x] Probe 3 — unapproved schedule rejected with 4xx
-- [ ] Probe 4 — approved scheduled variant publishes to Discord
-- [ ] Probe 5 — worker restart produces exactly one successful post
-- [ ] Probe 6 — publisher swapped by configuration only
+- [x] Probe 4 — approved scheduled variant publishes to Discord
+- [x] Probe 5 — worker restart produces exactly one successful post
+- [x] Probe 6 — publisher swapped by configuration only
 
 ## Stretch Goals
 
@@ -506,3 +506,108 @@ Not yet claimed:
 - the complete six-probe final acceptance suite.
 
 Those remain Phase 5B.
+
+## Phase 5B — Final Core Acceptance Evidence
+
+### True crash-after-external-side-effect test
+
+```text
+.                                                                        [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.13/site-packages/fastapi/testclient.py:1
+  /home/mina/flyrank-capstone-social-studio/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 1 warning in 1.78s
+```
+
+### Full regression before real acceptance
+
+```text
+..................................................                       [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.13/site-packages/fastapi/testclient.py:1
+  /home/mina/flyrank-capstone-social-studio/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+50 passed, 1 warning in 7.25s
+```
+
+### Clean-copy one-command stranger demo
+
+```text
+CLEAN COPY ONE-COMMAND DEMO: PASS
+Command: ./scripts/demo.sh
+Fresh copy started without .venv.
+Fresh copy started without .env.
+Fresh copy started without runtime data.
+Virtual environment was created automatically.
+Dependencies were installed automatically.
+Seed campaign was created automatically.
+FastAPI /health returned HTTP 200.
+Worker published the seeded campaign to Mock X.
+Real Discord was not used.
+```
+
+### Six mandatory acceptance probes
+
+```text
+/home/mina/flyrank-capstone-social-studio/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+PROBE 1: PASS — stored post generated three valid platform variants
+PROBE 2: PASS — invalid variant blocked before review with named max_length rule
+PROBE 3: PASS — unapproved scheduling blocked with HTTP 409
+PROBE 5: PASS — worker crashed after external mock side effect, restart retried, exactly one external post exists
+PROBE 6: PASS — Discord campaign routed through Mock X using configuration only
+PROBE 4: real Discord slot created
+Scheduled approximately two minutes out: 2026-09-01T02:31:11.115273+00:00
+Waiting for automatic scheduler...
+PROBE 4 early-publish check: PASS — still unpublished after 30 seconds
+Still waiting for scheduled Discord delivery... elapsed_after_early_check=0s
+Still waiting for scheduled Discord delivery... elapsed_after_early_check=16s
+Still waiting for scheduled Discord delivery... elapsed_after_early_check=30s
+Still waiting for scheduled Discord delivery... elapsed_after_early_check=46s
+Still waiting for scheduled Discord delivery... elapsed_after_early_check=60s
+Still waiting for scheduled Discord delivery... elapsed_after_early_check=76s
+Still waiting for scheduled Discord delivery... elapsed_after_early_check=90s
+PROBE 4: PASS — approved variant was automatically published by the worker about two minutes after scheduling
+PROBE 4 real Discord message ID: 1544172744986337410
+PROBE 4 live Discord URL: https://discord.com/channels/1544164705390563421/1544164706321694793/1544172744986337410
+PROBE 4 retry protection: PASS — persistent receipt reused
+
+========================================
+ALL SIX FINAL ACCEPTANCE PROBES: PASS
+========================================
+```
+
+### Final Core Gate
+
+- [x] Stored post is the generation source of truth.
+- [x] Platform variants are generated and validated.
+- [x] Constraint failures identify the broken rule.
+- [x] Human approval is required before scheduling.
+- [x] Unapproved scheduling returns 4xx.
+- [x] Discord is verified as the real free target.
+- [x] Mock X is implemented.
+- [x] Mock LinkedIn is implemented.
+- [x] Publisher swapping requires configuration only.
+- [x] Automatic scheduled publishing works.
+- [x] Durable scheduler survives restart.
+- [x] Publish attempts remain visible.
+- [x] Worker restart recovers interrupted work.
+- [x] Crash after simulated external Mock X publication does not create a
+  duplicate external post.
+- [x] Exactly one final receipt exists for the retried slot.
+- [x] Real Discord automatic scheduler probe passes.
+- [x] Real Discord message is remotely verified.
+- [x] Real Discord live message URL is recorded.
+- [x] Retry after Discord success returns the existing receipt.
+- [x] Clean-copy one-command demo passes.
+- [x] Secrets remain outside Git.
+- [x] All six acceptance probes pass.
+
+Mandatory/core implementation is complete.
+
+Stretch goals remain separate.

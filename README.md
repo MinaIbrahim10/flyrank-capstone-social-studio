@@ -12,8 +12,8 @@ interface.
 - Phase 1 — Design: complete
 - Phase 2 — Ingestion, storage, generation and constraints: complete
 - Phase 3 — Human review workflow and schedule approval gate: complete
-- Phase 4 — Publisher adapters and idempotent publishing: next
-- Phase 5 — Durable worker, publish history and crash recovery: pending
+- Phase 4 — Publisher adapters and idempotent publishing: complete
+- Phase 5 — Durable worker, publish history and crash recovery: complete
 
 ## Stack
 
@@ -483,3 +483,80 @@ hard process termination without creating uncontrolled real social messages.
 
 The final Phase 5 gate will separately verify automatic scheduled delivery to
 the real Discord target.
+
+## Final Core Status
+
+All mandatory Social Media Studio core requirements and all six acceptance
+probes have passed.
+
+Verified end to end:
+
+- stored Markdown and URL ingestion;
+- stored source-of-truth generation;
+- platform-specific variants;
+- enforced length, hashtag, and tone constraints;
+- human draft / approve / reject workflow;
+- unapproved scheduling blocked with 4xx;
+- common `SocialPublisher` interface;
+- real Discord publisher;
+- Mock X publisher;
+- Mock LinkedIn publisher;
+- configuration-only publisher swap;
+- durable scheduler state;
+- APScheduler persistent SQLAlchemy job store;
+- automatic scheduled worker publishing;
+- visible publish attempts and results;
+- stable idempotency keys;
+- worker crash/restart recovery;
+- crash after the Mock X external side effect but before the local receipt;
+- zero duplicate Mock X external posts after retry;
+- automatic real Discord delivery approximately two minutes after scheduling;
+- real Discord message verification;
+- retry protection after real Discord delivery.
+
+### One-command demo
+
+From a clean repository checkout run:
+
+```text
+./scripts/demo.sh
+```
+
+The command creates the environment when necessary, installs requirements,
+creates a safe demo database, seeds a campaign, starts the worker, and starts
+FastAPI.
+
+The one-command demo always uses Mock X and never sends a real Discord message.
+
+Open:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+Normal explicit commands remain:
+
+```text
+./scripts/setup.sh
+./scripts/run.sh
+./scripts/worker.sh
+```
+
+### Final acceptance runner
+
+```text
+.venv/bin/python scripts/final_acceptance.py
+```
+
+This executes all six mandatory acceptance probes.
+
+Probe 4 uses the real Discord webhook stored only in the ignored local `.env`
+and schedules the real message approximately two minutes into the future.
+
+`EVIDENCE.md` contains the actual acceptance output.
+
+## Core vs Stretch Goals
+
+The mandatory capstone core is complete.
+
+Stretch goals remain separate follow-up work.
