@@ -395,3 +395,18 @@ Phase 4 is complete.
 
 The next core phase is durable automatic scheduling, worker restart recovery,
 and end-to-end publish history.
+
+## Discord Message URL Metadata Fallback
+
+Discord webhook execution responses do not always contain every location field
+needed to build the normal browser message URL.
+
+`DiscordPublisher` therefore uses this flow:
+
+1. execute the webhook with `wait=true`;
+2. read the returned message ID;
+3. if guild or channel metadata is missing, query the webhook metadata endpoint;
+4. build the normal Discord URL from guild ID, channel ID, and message ID.
+
+The webhook credential remains local in `.env` and is never included in the
+stored browser URL.

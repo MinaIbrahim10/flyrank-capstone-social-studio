@@ -121,6 +121,55 @@ class DiscordPublisher(
             else None
         )
 
+        # Discord webhook execution may return a Message
+        # without every location field needed for a normal
+        # Discord browser URL. In that case, read the webhook
+        # metadata without exposing the webhook token.
+        if (
+            message_id
+            and (
+                channel_id is None
+                or guild_id is None
+            )
+        ):
+            get_method = getattr(
+                self.http_client,
+                "get",
+                None,
+            )
+
+            if callable(get_method):
+                metadata_response = get_method(
+                    self.webhook_url,
+                    timeout=15.0,
+                )
+
+                metadata_response.raise_for_status()
+
+                metadata = (
+                    metadata_response.json()
+                )
+
+                if channel_id is None:
+                    value = metadata.get(
+                        "channel_id"
+                    )
+
+                    if value is not None:
+                        channel_id = str(
+                            value
+                        )
+
+                if guild_id is None:
+                    value = metadata.get(
+                        "guild_id"
+                    )
+
+                    if value is not None:
+                        guild_id = str(
+                            value
+                        )
+
         external_url = None
 
         if (

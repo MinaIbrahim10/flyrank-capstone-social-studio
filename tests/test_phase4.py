@@ -745,3 +745,114 @@ def test_failed_publish_is_recorded_and_slot_can_retry(
             history.json()[0]["result"]
             == "failed"
         )
+
+
+class DiscordMessageWithoutGuildResponse:
+    def raise_for_status(
+        self,
+    ) -> None:
+        return None
+
+    def json(
+        self,
+    ) -> dict:
+        return {
+            "id":
+                "444444444444444444",
+
+            "channel_id":
+                "555555555555555555",
+        }
+
+
+class DiscordWebhookMetadataResponse:
+    def raise_for_status(
+        self,
+    ) -> None:
+        return None
+
+    def json(
+        self,
+    ) -> dict:
+        return {
+            "id":
+                "666666666666666666",
+
+            "guild_id":
+                "777777777777777777",
+
+            "channel_id":
+                "555555555555555555",
+        }
+
+
+class DiscordMetadataFallbackClient:
+    def __init__(
+        self,
+    ) -> None:
+        self.post_calls = 0
+        self.get_calls = 0
+
+    def post(
+        self,
+        url: str,
+        *,
+        json: dict,
+        timeout: float,
+    ) -> DiscordMessageWithoutGuildResponse:
+        self.post_calls += 1
+
+        return (
+            DiscordMessageWithoutGuildResponse()
+        )
+
+    def get(
+        self,
+        url: str,
+        *,
+        timeout: float,
+    ) -> DiscordWebhookMetadataResponse:
+        self.get_calls += 1
+
+        return (
+            DiscordWebhookMetadataResponse()
+        )
+
+
+def test_discord_adapter_recovers_location_from_webhook_metadata():
+    fake = (
+        DiscordMetadataFallbackClient()
+    )
+
+    publisher = DiscordPublisher(
+        webhook_url=(
+            "https://discord.com/api/webhooks/"
+            "123456789012345678/"
+            "fake-token-for-test-only"
+        ),
+        http_client=fake,
+    )
+
+    result = publisher.publish(
+        variant_id=1,
+        content=(
+            "Realistic Discord metadata "
+            "fallback test."
+        ),
+        idempotency_key="metadata-test",
+    )
+
+    assert fake.post_calls == 1
+    assert fake.get_calls == 1
+
+    assert (
+        result.external_message_id
+        == "444444444444444444"
+    )
+
+    assert result.external_url == (
+        "https://discord.com/channels/"
+        "777777777777777777/"
+        "555555555555555555/"
+        "444444444444444444"
+    )

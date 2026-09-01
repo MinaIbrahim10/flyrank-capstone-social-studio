@@ -148,3 +148,20 @@ This closes the real-platform portion of Phase 4.
 
 The next reliability phase must still prove durable automatic scheduling and
 worker restart behavior. Those are not claimed complete here.
+
+## Phase 4C — Evidence Accuracy Correction
+
+The original real Discord gate correctly proved message delivery and remote
+retrieval, but its transcript contained `Discord message URL: None`.
+
+Rather than claiming a live URL without evidence, the Discord adapter was
+hardened to query webhook metadata when the message execution response omits
+guild or channel information.
+
+The already-published real message was re-verified without creating another
+message. Discord webhook metadata supplied the missing location identifiers,
+and a normal Discord browser message URL was constructed.
+
+The existing local publish receipt was also updated with that URL.
+
+No Discord credential was committed or printed.

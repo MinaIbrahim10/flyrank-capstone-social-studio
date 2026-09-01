@@ -352,7 +352,7 @@ HUMAN APPROVAL GATE: PASS
 DISCORD SLOT CREATED: PASS slot=1
 REAL DISCORD SEND: PASS
 Discord message ID: 1544164875507605567
-Discord message URL: None
+Discord message URL: https://discord.com/channels/1544164705390563421/1544164706321694793/1544164875507605567
 REPEATED REAL PUBLISH: PASS
 Duplicate prevented: TRUE
 REMOTE DISCORD MESSAGE FETCH: PASS
@@ -373,7 +373,7 @@ REAL DISCORD PHASE 4 GATE: PASS
 - [x] The approved variant received a persistent schedule slot.
 - [x] `DiscordPublisher` delivered a real message.
 - [x] Discord returned a real external message ID.
-- [x] Discord returned enough metadata to build a live message URL.
+- [x] Discord message ID plus webhook metadata provided enough information to build a live message URL.
 - [x] The returned message was fetched again from the real Discord API.
 - [x] Repeating the publish operation returned the original receipt.
 - [x] The repeated operation was marked `duplicate_prevented=true`.
@@ -383,3 +383,47 @@ REAL DISCORD PHASE 4 GATE: PASS
 This completes the Phase 4 requirement for one real free publishing target.
 
 The durable automatic scheduler and worker-restart test remain Phase 5 work.
+
+## Phase 4C — Discord Live Message URL
+
+The first real Discord execution returned a valid message ID, but the execution
+response did not include every field required to construct the normal browser
+message URL, so the original transcript showed `no browser URL was returned in the initial transcript`.
+
+The webhook metadata endpoint was then queried using the local ignored secret.
+It returned the Discord guild and channel identifiers. Combined with the
+already verified message ID, this produced the normal Discord message URL:
+
+```text
+https://discord.com/channels/1544164705390563421/1544164706321694793/1544164875507605567
+```
+
+The same message ID was fetched again through Discord before this evidence was
+recorded.
+
+- [x] Real message ID verified.
+- [x] Guild ID obtained from Discord webhook metadata.
+- [x] Channel ID obtained from Discord webhook metadata.
+- [x] Normal Discord live message URL constructed.
+- [x] Existing message re-verified remotely.
+- [x] No second Discord message was created during this correction.
+
+## Phase 4C — Verified Discord Live URL
+
+The already-published Discord message was re-fetched from the real Discord API.
+Webhook metadata supplied the guild and channel identifiers required to build
+the normal Discord browser URL.
+
+Discord message ID: 1544164875507605567
+Discord guild ID: 1544164705390563421
+Discord channel ID: 1544164706321694793
+Discord live message URL: https://discord.com/channels/1544164705390563421/1544164706321694793/1544164875507605567
+
+Verification:
+
+- [x] Existing Discord message re-fetched from Discord.
+- [x] Message ID matches the original real publish.
+- [x] Guild ID obtained from Discord webhook metadata.
+- [x] Channel ID obtained from Discord webhook metadata.
+- [x] Live Discord browser URL constructed from verified identifiers.
+- [x] No additional Discord message was sent during this verification.
