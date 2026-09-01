@@ -4,8 +4,7 @@ FlyRank Backend Track capstone.
 
 Social Media Studio changes one stored blog post into platform-specific social
 media variants, validates platform rules, requires human approval, schedules
-approved variants, and later publishes them through one common adapter
-interface.
+approved variants, and publishes them through one common adapter interface.
 
 ## Current Status
 
@@ -141,8 +140,8 @@ The final transition:
 approved -> published
 ```
 
-will be implemented only after an actual publisher reports successful delivery
-in the publishing phases.
+occurs only after the configured publisher reports successful delivery. This
+flow is implemented and verified, including real Discord delivery.
 
 ## API
 
@@ -258,20 +257,19 @@ See `EVIDENCE.md`.
 
 See `BUILDLOG.md`.
 
-## Known Limitations
+## Scope and Current Limitations
 
-Creating a schedule currently stores the approved future publishing slot.
+The complete mandatory workflow is implemented: review, approved-only
+scheduling, durable worker execution, publisher adapters, idempotent receipts,
+restart recovery, and publish history.
 
-The background worker does not execute that slot yet; durable execution belongs
-to Phase 5.
+Intentional scope boundaries:
 
-The Discord, Mock X, and Mock LinkedIn publisher implementations are not yet
-connected; they belong to Phase 4.
-
-A variant becomes `published` only after a real publishing success in a later
-phase.
-
-Real Instagram, X, and LinkedIn publishing is intentionally outside scope.
+- Discord is the verified real publishing target.
+- X and LinkedIn use local mock adapters.
+- Real Instagram, X, and LinkedIn publishing is intentionally outside scope.
+- Local Ollama is optional; deterministic generation works without it.
+- Secrets and runtime databases remain local and are not committed.
 
 ## Publisher Adapter Layer
 
@@ -369,11 +367,10 @@ returns guild, channel, and message identifiers.
 Deterministic adapter, mock-platform, configuration-swap, failure-recording,
 and retry/idempotency tests are complete.
 
-Real Discord delivery is intentionally not claimed yet.
+Real Discord delivery is also verified. The project records the real message
+ID, live browser URL, remote retrieval result, and persistent retry-safe receipt.
 
-The Phase 4 core gate becomes complete only after a message is actually sent to
-the project owner's Discord target and the returned live message is recorded as
-evidence.
+Phase 4 is complete.
 
 ## Real Discord Verification
 
@@ -393,8 +390,8 @@ The Discord webhook itself remains only in `.env` and is never committed.
 
 Phase 4 is complete.
 
-The next core phase is durable automatic scheduling, worker restart recovery,
-and end-to-end publish history.
+Phase 5 is also complete, including durable automatic scheduling, worker
+restart recovery, idempotent retry behavior, and end-to-end publish history.
 
 ## Discord Message URL Metadata Fallback
 
@@ -481,8 +478,9 @@ The real Discord publisher was verified in Phase 4.
 The deterministic crash/restart test uses Mock X so the test can safely perform
 hard process termination without creating uncontrolled real social messages.
 
-The final Phase 5 gate will separately verify automatic scheduled delivery to
-the real Discord target.
+The final Phase 5 gate verified automatic scheduled delivery to the real
+Discord target approximately two minutes after scheduling, without manual
+publication triggering the first delivery.
 
 ## Final Core Status
 
@@ -555,11 +553,12 @@ and schedules the real message approximately two minutes into the future.
 
 `EVIDENCE.md` contains the actual acceptance output.
 
-## Core vs Stretch Goals
+## Core and Stretch Status
 
 The mandatory capstone core is complete.
 
-Stretch goals remain separate follow-up work.
+All listed optional stretch goals are also implemented, tested, documented, and
+verified without breaking the mandatory core.
 
 ## Completed Stretch Goals
 
