@@ -58,3 +58,33 @@ deterministic and does not depend on external internet access.
 The restart-persistence test creates data with one FastAPI application,
 destroys it, starts another application against the same SQLite file, and
 verifies the stored post still exists.
+
+## Phase 3 — Human Review Workflow
+
+AI assistance was used to implement and test the explicit review state
+transitions and the approval gate before scheduling.
+
+Implemented decisions:
+
+- generated variants begin as `draft`;
+- a draft can be changed to `approved`;
+- a draft can be changed to `rejected`;
+- only draft variants may be approved or rejected;
+- editing re-runs deterministic platform validation;
+- an invalid edit is rejected without changing persisted content;
+- editing an approved or rejected variant returns it to `draft`, forcing fresh
+  human approval after content changes;
+- published variants will be immutable once Phase 4/5 creates that state;
+- scheduling is refused unless the variant is `approved`;
+- invalid schedule requests use explicit 4xx responses;
+- schedule timestamps must include timezone information and be in the future;
+- schedule slots are stored persistently in SQLite;
+- repeating the same `(variant, time, publisher)` schedule request returns the
+  existing slot rather than creating a duplicate.
+
+The actual scheduler worker and publishing side effects are intentionally not
+claimed as complete in this phase. Phase 3 only implements the persistent
+future slot and the required approval gate.
+
+Phase 3 evidence includes deterministic tests and a local API transcript
+showing both the blocked unapproved path and successful approved scheduling.

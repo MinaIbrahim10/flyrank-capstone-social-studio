@@ -95,6 +95,7 @@ class Variant(Base):
         String(20),
         nullable=False,
         default="draft",
+        index=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -107,5 +108,57 @@ class Variant(Base):
         DateTime(timezone=True),
         default=utc_now,
         onupdate=utc_now,
+        nullable=False,
+    )
+
+
+class ScheduleSlot(Base):
+    __tablename__ = "schedule_slots"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "variant_id",
+            "scheduled_at",
+            "publisher",
+            name="uq_schedule_variant_time_publisher",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    variant_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "variants.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    publisher: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+    )
+
+    scheduled_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        index=True,
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="scheduled",
+        index=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
         nullable=False,
     )

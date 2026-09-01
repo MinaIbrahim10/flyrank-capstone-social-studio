@@ -26,7 +26,7 @@ real publish result proves it.
 - [x] Platform constraint profiles are enforced
 - [x] Invalid variants name the broken rule
 - [ ] Review supports draft / approved / rejected / published
-- [ ] Unapproved scheduling returns 4xx
+- [x] Unapproved scheduling returns 4xx
 - [ ] Discord real adapter works
 - [ ] Mock X adapter works
 - [ ] Mock LinkedIn adapter works
@@ -42,7 +42,7 @@ real publish result proves it.
 
 - [ ] Probe 1 — ingest post and generate valid variants
 - [ ] Probe 2 — invalid variant blocked with named rule
-- [ ] Probe 3 — unapproved schedule rejected with 4xx
+- [x] Probe 3 — unapproved schedule rejected with 4xx
 - [ ] Probe 4 — approved scheduled variant publishes to Discord
 - [ ] Probe 5 — worker restart produces exactly one successful post
 - [ ] Probe 6 — publisher swapped by configuration only
@@ -119,3 +119,146 @@ PHASE 2 LOCAL ACCEPTANCE: PASS
 - [x] SQLite data survives application restart.
 
 Human review remains Phase 3.
+
+## Phase 3 — Human Review Evidence
+
+Implemented:
+
+- `draft` initial variant state;
+- human editing;
+- deterministic revalidation after editing;
+- invalid edit rejection with the broken rule named;
+- `draft -> approved`;
+- `draft -> rejected`;
+- edits return reviewed content to `draft`;
+- schedule requests require `approved`;
+- draft scheduling returns 4xx;
+- rejected scheduling returns 4xx;
+- approved scheduling succeeds;
+- schedule timestamps require timezone information;
+- past schedule timestamps are rejected;
+- repeated identical schedule requests resolve to one persistent slot;
+- schedule records survive application restart.
+
+### Phase 3 automated tests
+
+Command:
+
+```text
+.venv/bin/pytest tests/test_phase3.py -q
+```
+
+Actual output:
+
+```text
+...............                                                          [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.13/site-packages/fastapi/testclient.py:1
+  /home/mina/flyrank-capstone-social-studio/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+15 passed, 1 warning in 0.61s
+```
+
+### Full regression after Phase 3
+
+Command:
+
+```text
+.venv/bin/pytest -q
+```
+
+Actual output:
+
+```text
+.............................                                            [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.13/site-packages/fastapi/testclient.py:1
+  /home/mina/flyrank-capstone-social-studio/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+29 passed, 1 warning in 0.76s
+```
+
+### Human-review API acceptance transcript
+
+```text
+DRAFT CREATED: PASS variant=1 status=draft
+UNAPPROVED SCHEDULE BLOCKED: PASS status=409
+INVALID EDIT BLOCKED: PASS rules=['max_length']
+VALID EDIT: PASS status=draft
+REJECT WORKFLOW: PASS status=rejected
+REJECTED SCHEDULE BLOCKED: PASS status=409
+APPROVAL WORKFLOW: PASS status=approved
+APPROVED SCHEDULE: PASS slot=1 publisher=discord
+DUPLICATE SCHEDULE REQUEST: PASS same_slot=true
+PHASE 3 LOCAL ACCEPTANCE: PASS
+```
+
+### Phase 3 Gate
+
+- [x] Generated variants begin in `draft`.
+- [x] A human can edit a variant.
+- [x] Edited content is revalidated.
+- [x] A rule-breaking edit is blocked.
+- [x] Invalid edits identify the broken platform rule.
+- [x] A draft can be approved.
+- [x] A draft can be rejected.
+- [x] Editing reviewed content requires fresh approval.
+- [x] A draft variant cannot be scheduled.
+- [x] A rejected variant cannot be scheduled.
+- [x] An unapproved scheduling attempt returns 4xx.
+- [x] An approved variant can be scheduled.
+- [x] Schedule records persist in SQLite.
+- [x] Repeating the same schedule request creates no duplicate slot.
+
+Not yet claimed:
+
+- `approved -> published` is not marked complete because no publisher has
+  delivered the content yet.
+- durable worker execution is not marked complete yet.
+- publish history is not marked complete yet.
+
+## Phase 3 — Final Route Registration Verification
+
+The first auxiliary route-inspection gate used a direct route-set comparison
+that did not match FastAPI's internal route representation, even though the
+behavioral tests and API acceptance probe had already passed.
+
+The corrected gate verifies registered operations through FastAPI's generated
+OpenAPI schema and then repeats the critical review and scheduling behavior.
+
+### OpenAPI registration check
+
+```text
+PUT  /variants/{variant_id}: PASS
+POST /variants/{variant_id}/approve: PASS
+POST /variants/{variant_id}/reject: PASS
+POST /variants/{variant_id}/schedule: PASS
+GET  /schedules: PASS
+GET  /schedules/{slot_id}: PASS
+
+PHASE 3 OPENAPI ROUTE VERIFICATION: PASS
+```
+
+### Critical behavior re-check
+
+```text
+DRAFT SCHEDULE BLOCKED: PASS status=409
+APPROVAL: PASS status=approved
+APPROVED SCHEDULE: PASS status=201
+DUPLICATE SCHEDULE PROTECTION: PASS
+PHASE 3 BEHAVIOR RECOVERY CHECK: PASS
+```
+
+The corrected verification confirms that the edit, approve, reject, scheduling,
+and schedule-read operations are registered.
+
+It also confirms:
+
+- a draft variant cannot be scheduled;
+- approval changes the variant to `approved`;
+- an approved variant can be scheduled;
+- repeating the same schedule request returns the same persistent slot.

@@ -3,17 +3,17 @@
 FlyRank Backend Track capstone.
 
 Social Media Studio changes one stored blog post into platform-specific social
-media variants, validates each platform's rules, requires human approval before
-publishing, schedules approved variants, and publishes through one common
-adapter interface.
+media variants, validates platform rules, requires human approval, schedules
+approved variants, and later publishes them through one common adapter
+interface.
 
 ## Current Status
 
 - Phase 1 — Design: complete
 - Phase 2 — Ingestion, storage, generation and constraints: complete
-- Phase 3 — Human review workflow: next
-- Phase 4 — Publishing adapters and idempotency: pending
-- Phase 5 — Durable scheduler and publish history: pending
+- Phase 3 — Human review workflow and schedule approval gate: complete
+- Phase 4 — Publisher adapters and idempotent publishing: next
+- Phase 5 — Durable worker, publish history and crash recovery: pending
 
 ## Stack
 
@@ -44,42 +44,45 @@ Blog Post: Markdown or URL
  Constraint Validation
           |
           v
-    Human Review
-      Phase 3
+     Human Review
+ draft -> approved
+       \-> rejected
           |
           v
-  Durable Scheduler
-      Phase 5
+   Schedule Gate
+ approved only
           |
           v
-   SocialPublisher
-    /     |      \
+ Durable Scheduler
+     Phase 5
+          |
+          v
+  SocialPublisher
+   /     |      \
 Discord Mock X Mock LinkedIn
-      Phase 4
+       Phase 4
           |
           v
-   Publish History
+ Publish History
+     Phase 5
 ```
 
 ## Source of Truth
 
-A post enters as either:
-
-- pasted Markdown; or
-- a public URL.
+A post enters as either pasted Markdown or a public URL.
 
 URL content is fetched and stored during ingestion.
 
-After that point, generation reads the stored database record only. The stored
+After ingestion, generation reads only the stored database record. The stored
 post is the single source of truth.
 
-## Constraint Profiles
+## Platform Constraint Profiles
 
 ### Discord
 
 - maximum 2000 characters
 - maximum 5 hashtags
-- conversational tone rules
+- conversational tone checks
 
 ### Mock X
 
@@ -93,11 +96,53 @@ post is the single source of truth.
 - maximum 3 hashtags
 - professional tone rules
 
-Validation errors identify the exact failed rule:
+Constraint errors identify the exact failed rule:
 
 - `max_length`
 - `hashtag_count`
 - `tone`
+
+## Review Workflow
+
+Every generated variant begins as:
+
+```text
+draft
+```
+
+A human reviewer can:
+
+```text
+draft -> approved
+```
+
+or:
+
+```text
+draft -> rejected
+```
+
+Editing a non-published variant runs platform validation again and returns the
+variant to:
+
+```text
+draft
+```
+
+This prevents an old approval from remaining valid after content changes.
+
+Only `approved` variants may be scheduled.
+
+A schedule request for a `draft` or `rejected` variant returns HTTP `409`.
+
+The final transition:
+
+```text
+approved -> published
+```
+
+will be implemented only after an actual publisher reports successful delivery
+in the publishing phases.
 
 ## API
 
@@ -113,56 +158,73 @@ Validation errors identify the exact failed rule:
 
 `GET /posts/{post_id}`
 
-Markdown example:
-
-```json
-{
-  "title": "Reliable Publishing",
-  "markdown": "# Reliable Publishing\n\nRetries must be safe."
-}
-```
-
-URL example:
-
-```json
-{
-  "title": "Example Article",
-  "url": "https://example.com/article"
-}
-```
-
-Exactly one of `markdown` or `url` must be supplied.
-
-### Variants
+### Generate Variants
 
 `POST /posts/{post_id}/variants`
 
 `GET /posts/{post_id}/variants`
 
+### Read a Variant
+
 `GET /variants/{variant_id}`
 
-Generation creates:
+### Edit a Variant
 
-- `discord`
-- `mock_x`
-- `mock_linkedin`
-
-Every generated variant starts with status `draft`.
-
-### Validate a Variant
-
-`POST /variants/validate`
+`PUT /variants/{variant_id}`
 
 Example:
 
 ```json
 {
-  "platform": "mock_x",
-  "content": "Reliable systems retry safely. #backend"
+  "content": "Reviewed and updated social post. #backend"
 }
 ```
 
-A broken platform rule returns HTTP `422` and names the failed rule.
+The edited content is validated against the platform constraint profile before
+it is saved.
+
+### Approve
+
+`POST /variants/{variant_id}/approve`
+
+Only a `draft` variant can be approved.
+
+### Reject
+
+`POST /variants/{variant_id}/reject`
+
+Only a `draft` variant can be rejected.
+
+### Validate Content
+
+`POST /variants/validate`
+
+### Schedule
+
+`POST /variants/{variant_id}/schedule`
+
+Example:
+
+```json
+{
+  "scheduled_at": "2030-01-01T12:00:00+00:00"
+}
+```
+
+Rules:
+
+- the variant must be `approved`;
+- the timestamp must include a timezone;
+- the timestamp must be in the future;
+- repeating the same schedule request returns the same stored slot.
+
+### List Schedules
+
+`GET /schedules`
+
+### Read Schedule
+
+`GET /schedules/{slot_id}`
 
 ## Setup
 
@@ -198,13 +260,15 @@ See `BUILDLOG.md`.
 
 ## Known Limitations
 
-The human approve/edit/reject workflow is not implemented yet.
+Creating a schedule currently stores the approved future publishing slot.
 
-Publishing adapters are not implemented yet.
+The background worker does not execute that slot yet; durable execution belongs
+to Phase 5.
 
-Durable scheduling and publish history are not implemented yet.
+The Discord, Mock X, and Mock LinkedIn publisher implementations are not yet
+connected; they belong to Phase 4.
 
-Real Discord publishing will be implemented only after the deterministic core
-and review workflow pass.
+A variant becomes `published` only after a real publishing success in a later
+phase.
 
 Real Instagram, X, and LinkedIn publishing is intentionally outside scope.
