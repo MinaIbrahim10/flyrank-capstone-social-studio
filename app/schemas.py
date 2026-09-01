@@ -137,3 +137,42 @@ class ScheduleRead(BaseModel):
     scheduled_at: datetime
     status: str
     created_at: datetime
+
+
+class PublishOutcomeRead(BaseModel):
+    slot_id: int
+    variant_id: int
+    publisher: str
+    idempotency_key: str
+    external_message_id: str | None
+    external_url: str | None
+    duplicate_prevented: bool
+
+
+class PublishAttemptRead(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
+
+    id: int
+    slot_id: int
+    publisher: str
+    idempotency_key: str
+    result: str
+    external_message_id: str | None
+    external_url: str | None
+    error: str | None
+    attempted_at: datetime
+
+
+class MockPublishedPostRead(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
+
+    id: int
+    platform: str
+    variant_id: int
+    content: str
+    idempotency_key: str
+    created_at: datetime

@@ -88,3 +88,36 @@ future slot and the required approval gate.
 
 Phase 3 evidence includes deterministic tests and a local API transcript
 showing both the blocked unapproved path and successful approved scheduling.
+
+## Phase 4A — Publisher Adapter Layer
+
+AI assistance was used to implement the common `SocialPublisher` interface,
+Discord adapter, two project-owned mock adapters, persistent publish receipts,
+publish history, and idempotency tests.
+
+Important design decisions:
+
+- business publishing logic depends on `SocialPublisher`;
+- platform selection is resolved by a factory;
+- `PUBLISHER_OVERRIDE` proves an adapter can be changed through configuration
+  without modifying campaign business logic;
+- Mock X and Mock LinkedIn write previews to the database;
+- Discord uses a webhook URL read from the environment only;
+- the real Discord credential is never stored in source code;
+- each schedule derives one stable idempotency key;
+- successful publishing creates one unique persistent receipt per schedule;
+- sequential retries return the existing receipt and do not invoke the adapter
+  again;
+- a schedule is atomically changed from `scheduled` to `publishing` before the
+  adapter call so a second concurrent worker cannot claim the same scheduled
+  item at the same time;
+- failed provider calls are recorded and return the slot to `scheduled` for a
+  later retry;
+- a successful publish changes both the slot and the variant to `published`.
+
+The Discord adapter is tested with a deterministic fake HTTP client. This
+proves request construction and response parsing but is not presented as proof
+of a real Discord delivery.
+
+A separate real-platform gate is still required before Phase 4 itself is
+declared complete.

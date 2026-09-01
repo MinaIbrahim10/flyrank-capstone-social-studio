@@ -28,10 +28,10 @@ real publish result proves it.
 - [ ] Review supports draft / approved / rejected / published
 - [x] Unapproved scheduling returns 4xx
 - [ ] Discord real adapter works
-- [ ] Mock X adapter works
-- [ ] Mock LinkedIn adapter works
-- [ ] Adapter swap requires configuration only
-- [ ] Publishing is idempotent
+- [x] Mock X adapter works
+- [x] Mock LinkedIn adapter works
+- [x] Adapter swap requires configuration only
+- [x] Publishing is idempotent
 - [ ] Scheduler survives restart
 - [ ] Worker restart produces zero duplicate posts
 - [ ] Publish history records attempts and results
@@ -262,3 +262,76 @@ It also confirms:
 - approval changes the variant to `approved`;
 - an approved variant can be scheduled;
 - repeating the same schedule request returns the same persistent slot.
+
+## Phase 4A — Publisher Adapter Evidence
+
+Implemented and verified:
+
+- one `SocialPublisher` interface;
+- Discord adapter implementation;
+- Mock X implementation;
+- Mock LinkedIn implementation;
+- configuration-only adapter selection;
+- persistent mock-platform previews;
+- stable per-slot idempotency key;
+- persistent unique publish receipt;
+- repeated calls return one successful publish result;
+- publish attempt history;
+- provider failure recording;
+- slot retry state after provider failure;
+- `approved -> published` after successful adapter execution.
+
+### Automated Phase 4A tests
+
+```text
+..............                                                           [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.13/site-packages/fastapi/testclient.py:1
+  /home/mina/flyrank-capstone-social-studio/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+14 passed, 1 warning in 0.61s
+```
+
+### Full regression
+
+```text
+...........................................                              [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.13/site-packages/fastapi/testclient.py:1
+  /home/mina/flyrank-capstone-social-studio/.venv/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+43 passed, 1 warning in 1.15s
+```
+
+### Deterministic adapter acceptance probe
+
+```text
+CONFIG ADAPTER SWAP: PASS discord -> mock_x
+IDEMPOTENT RETRY: PASS one successful external result
+MOCK PLATFORM STORE: PASS count=1
+PUBLISH HISTORY: PASS success_count=1
+STATUS TRANSITION: PASS approved -> published
+PHASE 4A LOCAL ACCEPTANCE: PASS
+```
+
+### Phase 4A status
+
+- [x] `SocialPublisher` abstraction exists.
+- [x] Mock X publishes to a local preview store.
+- [x] Mock LinkedIn publishes to a local preview store.
+- [x] Adapter selection can change through configuration only.
+- [x] Repeating a completed publish returns the same persistent receipt.
+- [x] A repeated successful publish does not create another mock post.
+- [x] Publish attempts are visible.
+- [x] Failed provider calls are recorded.
+- [x] Successful adapter execution changes the variant to `published`.
+- [x] Discord request/response handling is deterministically tested.
+- [ ] Real Discord message delivery evidence.
+
+Phase 4 is therefore not yet declared fully complete. The final remaining gate
+for this phase is a real message delivered to the project owner's Discord
+channel using a secret stored only in `.env`.

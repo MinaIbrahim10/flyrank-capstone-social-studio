@@ -162,3 +162,165 @@ class ScheduleSlot(Base):
         default=utc_now,
         nullable=False,
     )
+
+
+class PublishAttempt(Base):
+    __tablename__ = "publish_attempts"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    slot_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "schedule_slots.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    publisher: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        index=True,
+    )
+
+    idempotency_key: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        index=True,
+    )
+
+    result: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        index=True,
+    )
+
+    external_message_id: Mapped[str | None] = mapped_column(
+        String(200),
+        nullable=True,
+    )
+
+    external_url: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    error: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    attempted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        nullable=False,
+    )
+
+
+class PublishReceipt(Base):
+    __tablename__ = "publish_receipts"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "slot_id",
+            name="uq_publish_receipt_slot",
+        ),
+        UniqueConstraint(
+            "idempotency_key",
+            name="uq_publish_receipt_idempotency",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    slot_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "schedule_slots.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    publisher: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+    )
+
+    idempotency_key: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+    )
+
+    external_message_id: Mapped[str | None] = mapped_column(
+        String(200),
+        nullable=True,
+    )
+
+    external_url: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    published_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        nullable=False,
+    )
+
+
+class MockPublishedPost(Base):
+    __tablename__ = "mock_published_posts"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "idempotency_key",
+            name="uq_mock_post_idempotency",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    platform: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        index=True,
+    )
+
+    variant_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "variants.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    content: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+    )
+
+    idempotency_key: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        nullable=False,
+    )

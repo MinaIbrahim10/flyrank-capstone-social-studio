@@ -519,3 +519,116 @@ def get_schedule(
         )
 
     return slot
+
+
+# ============================================================
+# Phase 4 publishing endpoints
+# ============================================================
+
+from app.models import (
+    MockPublishedPost as Phase4MockPublishedPost,
+    PublishAttempt as Phase4PublishAttempt,
+)
+from app.schemas import (
+    MockPublishedPostRead as Phase4MockPublishedPostRead,
+    PublishAttemptRead as Phase4PublishAttemptRead,
+    PublishOutcomeRead as Phase4PublishOutcomeRead,
+)
+from app.services.publishing import (
+    PublishInProgress as Phase4PublishInProgress,
+    PublishNotAllowed as Phase4PublishNotAllowed,
+    ScheduleNotFound as Phase4ScheduleNotFound,
+    publish_slot as phase4_publish_slot,
+)
+
+
+@router.post(
+    "/schedules/{slot_id}/publish",
+    response_model=Phase4PublishOutcomeRead,
+)
+def publish_schedule_slot(
+    slot_id: int,
+    session: Session = Depends(
+        get_session
+    ),
+):
+    try:
+        return phase4_publish_slot(
+            session,
+            slot_id=slot_id,
+        )
+
+    except Phase4ScheduleNotFound as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except Phase4PublishNotAllowed as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        ) from exc
+
+    except Phase4PublishInProgress as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        ) from exc
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=str(exc),
+        ) from exc
+
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Publishing provider failed: "
+                f"{exc}"
+            ),
+        ) from exc
+
+
+@router.get(
+    "/publish-history",
+    response_model=list[
+        Phase4PublishAttemptRead
+    ],
+)
+def publish_history(
+    session: Session = Depends(
+        get_session
+    ),
+):
+    return session.scalars(
+        select(
+            Phase4PublishAttempt
+        )
+        .order_by(
+            Phase4PublishAttempt.id
+        )
+    ).all()
+
+
+@router.get(
+    "/mock-posts",
+    response_model=list[
+        Phase4MockPublishedPostRead
+    ],
+)
+def list_mock_posts(
+    session: Session = Depends(
+        get_session
+    ),
+):
+    return session.scalars(
+        select(
+            Phase4MockPublishedPost
+        )
+        .order_by(
+            Phase4MockPublishedPost.id
+        )
+    ).all()
